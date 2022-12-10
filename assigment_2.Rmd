@@ -107,13 +107,13 @@ levels(df$income) <- c("income.0", "income.1","income.2", "income.3", "income.4"
 levels(df$gender) <- c("gender.male", "gender.female")
 
 
+
 #Final structure
 str(df)
 
 ```
 
 ## 1.3 - Filter unwanted outliers.
-
 As all the variables are categorical, there are not outliers.
 
 
@@ -153,6 +153,7 @@ We can observe that the dataset that we are working with it is unbalanced on its
 
 lbls = names(table(df$vote))
 
+
 pie(table(df$vote),labels = lbls, col=rainbow(length(table(df$vote))), main="Distribution of votes (Target variable)")
 
 
@@ -165,18 +166,16 @@ pie(table(df$vote),labels = lbls, col=rainbow(length(table(df$vote))), main="Dis
 # 2 - Data Exploration
 ## 2.1 Derivation of New variables
 ```{r include=FALSE}
+
+#Dimension reduction of egoposition immigration from 10 to 3.
 df$egoposition_immigration_red <- df$egoposition_immigration
 
-df$egoposition_immigration_red <- as.factor(
-  ifelse(df$egoposition_immigration == "immgration.0", 'immgration.open',
-  ifelse(df$egoposition_immigration == "immgration.1", 'immgration.open',
-  ifelse(df$egoposition_immigration == "immgration.2", 'immgration.open',
-  ifelse(df$egoposition_immigration == "immgration.10", 'immgration.restrictive',
-  ifelse(df$egoposition_immigration == "immgration.9", 'immgration.restrictive',
-  ifelse(df$egoposition_immigration == "immgration.8", 'immgration.restrictive',
-  ifelse(df$egoposition_immigration == "immgration.7", 'immgration.restrictive',
-  ifelse(df$egoposition_immigration == "immgration.6", 'immgration.restrictive',
-         'immgration.mid')))))))))
+levels(df$egoposition_immigration_red) <- list("immgration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
+    "immgration.mid" = c("immgration.3", "immgration.4","immgration.5"),
+    "immgration.restrictive" = c("immgration.6", "immgration.7", "immgration.8", "immgration.9", "immgration.10"))
+
+
+
 
 
 ```
@@ -189,15 +188,24 @@ df$egoposition_immigration_red <- as.factor(
 
 
 ```{r include=FALSE}
-#(?) afegir percentatges
 
-pie(table(df$vote),labSels = names(table(df$vote)), col=rainbow(length(table(df$vote))), main="Distribution of votes (Target variable)")
+pie(table(df$vote),labels = names(table(df$vote)), col=rainbow(length(table(df$vote))), main="Distribution of votes (Target variable)")
+
+myplot <- ggplot(df, aes(vote)) + 
+          geom_bar(aes(y = (..count..)/sum(..count..))) + 
+          scale_y_continuous(labels=scales::percent) +
+  ylab("relative frequencies")
+
+myplot
 
 pie(table(df$egoposition_immigration),labels = names(table(df$egoposition_immigration)), col=rainbow(length(table(df$egoposition_immigration))), main="Distribution of egoposition_immigration")
+
+pie(table(df$egoposition_immigration_red),labels = names(table(df$egoposition_immigration_red)), col=rainbow(length(table(df$egoposition_immigration))), main="Distribution of egoposition_immigration")
 
 pie(table(df$ostwest),labels = names(table(df$ostwest)), col=rainbow(length(table(df$ostwest))), main="ostwest")
 
 pie(table(df$political_interest),labels = names(table(df$political_interest)), col=rainbow(length(table(df$political_interest))), main="political_interest")
+#we can see that political interest 0 is residual, may be we can delete it
 
 pie(table(df$income),labels = names(table(df$income)), col=rainbow(length(table(df$income))), main="income")
 
@@ -232,9 +240,7 @@ barplot(counts,
         legend = rownames(counts),  beside=TRUE, 
         args.legend = list(x = "topleft"))
 
-#(?) no saco muchas conslusiones, igual hay que hacer los plots porcentualmente porque estan muy desvanalnceados.
 
-#(?) egoposition_immigration es una mierda para trabajar. Igual se podria cambiar a categorias mas pequeñas.
 
 str(df)
 
@@ -268,10 +274,49 @@ barplot(counts,
 ```{r include=FALSE}
 
 names(df)
-
+df$control <-0
 res.cat=catdes(df, 1) 
 res.cat$test.chi2
 res.cat$category
+
+
+#plots of the variables that inluantiate vote usign catdes
+counts <- table(df$egoposition_immigration_red, df$vote)
+barplot(counts, 
+        xlab="Number of Votes", col=topo.colors(3),
+        legend = rownames(counts),  beside=TRUE, 
+        args.legend = list(x = "top"))
+
+counts <- table(df$ostwest, df$vote)
+barplot(counts, 
+        xlab="Number of Votes", col=topo.colors(2),
+        legend = rownames(counts),  beside=TRUE, 
+        args.legend = list(x = "top"))
+
+counts <- table(df$gender, df$vote)
+barplot(counts, 
+        xlab="Number of Votes", col=topo.colors(2),
+        legend = rownames(counts),  beside=TRUE, 
+        args.legend = list(x = "top"))
+
+
+#As the dataset is very unbalanced we can apply porcentual plots.
+ggplot(df, aes(x= gender,  group=vote)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="day") +
+    facet_grid(~vote) +
+    scale_y_continuous(labels = scales::percent)
+
+
+ggplot(df, aes(x= egoposition_immigration_red,  group=vote)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="day") +
+    facet_grid(~vote) +
+    scale_y_continuous(labels = scales::percent)
 
 ```
 
