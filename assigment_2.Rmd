@@ -8,6 +8,8 @@ output:
   html_document: default
 editor_options:
   chunk_output_type: console
+  markdown: 
+    wrap: 90
 ---
 
 ```{r, include=FALSE, echo=FALSE}
@@ -37,26 +39,34 @@ search()  #verify they are loaded
 # 0 - Data Descrption
 
 Vote - Voting decision for party into 6 levels (represented parties in the Bundestag):
-- "AfD"- Alternative für Deutschland, right wing populist party (right),
-- "CDU/CSU" – Center-right Christian-democratic political alliance (center),
-- "FDP" – Free democratic party – liberal party centre or centre-right of the political spectrum (center),
-- "Gruene" - Die Grünen – "the Greens" (left),
-- "LINKE" - DIE LINKE the left party is a democratic socialist political party in Germany, it is the furthest left-wing party of the six represented in the Bundestag (left),
-- "SPD" Social Democratic Party of Germany, center left (center).
-egoposition_immigration - Ego-position toward immigration (0 = very open to 10 = very restrictive )
+
+-   "AfD"- Alternative für Deutschland, right wing populist party (right)
+-   "CDU/CSU" -- Center-right Christian-democratic political alliance (center)
+-   "FDP" -- Free democratic party -- liberal party centre or centre-right of the
+    political spectrum (center)
+-   "Gruene" - Die Grünen -- "the Greens" (left)
+-   "LINKE" - DIE LINKE the left party is a democratic socialist political party in
+    Germany, it is the furthest left-wing party of the six represented in the Bundestag
+    (left)
+-   "SPD" Social Democratic Party of Germany, center left (center).
+
+egoposition_immigration - Ego-position toward immigration (0 = very open to 10 = very
+restrictive )
+
 ostwest - Dummy for respondents from Eastern Germany (= 1)
+
 political_interest - Measurement for political interst (0 = low, 4 = high)
+
 income - Self-reported income satisfaction (0 = low, 4 = high)
+
 gender - Self-reported gender (binary coding with 1 = female)
 
 ```{r include=FALSE}
 
 if(!is.null(dev.list())) dev.off() # Clear plots
-
 rm(list=ls()) # Clean workspace
 
-load("~/master/SIM/Assigment_2/gles.RData")
-
+load("./gles.RData")
 
 df <- gles
 
@@ -64,12 +74,12 @@ summary(df)
 str(df)
 ```
 
-
 # 1 - Data Preparation
 
 ## 1.1 - Removing duplicate or irrelevant observations
 
-Since there is not a column that represents the uniqueness of every row, we can not check if there are any duplicates
+Since there is not a column that represents the uniqueness of every row, we can not check
+if there are any duplicates
 
 ```{r include=FALSE}
 
@@ -85,7 +95,8 @@ length(idx_dup)
 
 It seems that there are no coding errors. All factors are correctly defined.
 
-We renamed the level factors with a meaningful names that describes the factors to which they belong. This helps us to better understanding when create the model.
+We renamed the level factors with a meaningful names that describes the factors to which
+they belong. This helps us to better understanding when create the model.
 
 ```{r include=FALSE}
 
@@ -98,15 +109,13 @@ df$income=as.factor(df$income)
 df$gender=as.factor(df$gender)
 
 # Rename levels for each factor
-levels(df$vote) <- c("vote.adf", "vote.adf", "vote.fdp", "vote.gruene", "vote.linke", "vote.spd")
+levels(df$vote) <- c("vote.AfD", "vote.CDU/CSU", "vote.FDP", "vote.Gruene", "vote.LINKE", "vote.SPD")
 levels(df$egoposition_immigration) <- c("immgration.0", "immgration.1",
       "immgration.2", "immgration.3", "immgration.4", "immgration.5", "immgration.6", "immgration.7", "immgration.8", "immgration.9", "immgration.10")
 levels(df$ostwest) <- c("ostwest.no", "ostwest.yes")
-levels(df$political_interest) <- c("political_interest.0", "political_interest.1","political_interest.2", "political_interest.3", "political_interest.4")
-levels(df$income) <- c("income.0", "income.1","income.2", "income.3", "income.4")
+levels(df$political_interest) <- c("political_interest.low", "political_interest.low_medium","political_interest.medium", "political_interest.medium_high", "political_interest.high")
+levels(df$income) <- c("income.low", "income.low_medium","income.medium", "income.medium_high", "income.high")
 levels(df$gender) <- c("gender.male", "gender.female")
-
-
 
 #Final structure
 str(df)
@@ -114,8 +123,8 @@ str(df)
 ```
 
 ## 1.3 - Filter unwanted outliers.
-As all the variables are categorical, there are not outliers.
 
+As all the variables are categorical, there are not outliers.
 
 ## 1.4 - Handle missing data
 
@@ -144,10 +153,10 @@ df[,which(mis_col>0)] # Show features with some NA value
 
 ```
 
-
 ## 1.5 - Data balancing
 
-We can observe that the dataset that we are working with it is unbalanced on its target variable.
+We can observe that the dataset that we are working with it is unbalanced on its target
+variable.
 
 ```{r include=FALSE}
 
@@ -162,30 +171,40 @@ pie(table(df$vote),labels = lbls, col=rainbow(length(table(df$vote))), main="Dis
 
 ```
 
-
 # 2 - Data Exploration
+
 ## 2.1 Derivation of New variables
+
 ```{r include=FALSE}
 
 #Dimension reduction of egoposition immigration from 10 to 3.
 df$egoposition_immigration_red <- df$egoposition_immigration
 
-levels(df$egoposition_immigration_red) <- list("immgration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
-    "immgration.mid" = c("immgration.3", "immgration.4","immgration.5"),
-    "immgration.restrictive" = c("immgration.6", "immgration.7", "immgration.8", "immgration.9", "immgration.10"))
+levels(df$egoposition_immigration_red) <- list("immigration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
+    "immigration.mid" = c("immgration.3", "immgration.4","immgration.5"),
+    "immigration.restrictive" = c("immgration.6", "immgration.7", "immgration.8", "immgration.9", "immgration.10"))
 
+df$egoposition_immigration_red2 <- df$egoposition_immigration
 
+levels(df$egoposition_immigration_red2) <- list("immigration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
+    "immigration.open_moderate" = c("immgration.3", "immgration.4"),
+    "immigration.moderate" = c("immgration.3", "immgration.5"),
+    "immigration.moderate_restrictive" = c("immgration.6", "immgration.7"),  "immigration.restrictive" = c("immgration.8", "immgration.9", "immgration.10"))
 
+# Political Orientation
+df$politicalOrientation <- df$vote
+
+levels(df$politicalOrientation) <- list("politicalOrientation.right"=c("vote.AfD"),
+            "politicalOrientation.center"=c("vote.CDU/CSU", "vote.FDP","vote.SPD"),
+            "politicalOrientation.left"=c("vote.Gruene", "vote.LINKE"))
 
 
 ```
 
-
-
 ## 2.2 - Data Analysis
-- We can observe that we have more male voters.
-- We can oberve that there is a difference in the income between genders.
 
+-   We can observe that we have more male voters.
+-   We can oberve that there is a difference in the income between genders.
 
 ```{r include=FALSE}
 
@@ -210,6 +229,8 @@ pie(table(df$political_interest),labels = names(table(df$political_interest)), c
 pie(table(df$income),labels = names(table(df$income)), col=rainbow(length(table(df$income))), main="income")
 
 pie(table(df$gender),labels = names(table(df$gender)), col=rainbow(length(table(df$gender))), main="gender")
+
+pie(table(df$politicalOrientation),labels = names(table(df$politicalOrientation)), col=rainbow(length(table(df$politicalOrientation))), main="politicalOrientation")
 
 
 colnames(df)
@@ -269,8 +290,8 @@ barplot(counts,
 
 ```
 
+## 2.3 - Profiling
 
-## 2.3 - Profiling 
 ```{r include=FALSE}
 
 names(df)
@@ -280,7 +301,13 @@ res.cat$test.chi2
 res.cat$category
 
 
-#plots of the variables that inluantiate vote usign catdes
+counts <- table(df$politicalOrientation, df$vote)
+barplot(counts, 
+        xlab="Number of Votes", col=topo.colors(3),
+        legend = rownames(counts),  beside=TRUE, 
+        args.legend = list(x = "top"))
+
+#plots of the variables that influentiate vote usign catdes
 counts <- table(df$egoposition_immigration_red, df$vote)
 barplot(counts, 
         xlab="Number of Votes", col=topo.colors(3),
@@ -302,41 +329,69 @@ barplot(counts,
 
 #As the dataset is very unbalanced we can apply porcentual plots.
 ggplot(df, aes(x= gender,  group=vote)) + 
-    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$gender))), stat="count") +
     geom_text(aes( label = scales::percent(..prop..),
                    y= ..prop.. ), stat= "count", vjust = -.5) +
-    labs(y = "Percent", fill="day") +
+    labs(y = "Percent", fill="Gender") +
     facet_grid(~vote) +
-    scale_y_continuous(labels = scales::percent)
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
 
 
 ggplot(df, aes(x= egoposition_immigration_red,  group=vote)) + 
-    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$egoposition_immigration_red))), stat="count") +
     geom_text(aes( label = scales::percent(..prop..),
                    y= ..prop.. ), stat= "count", vjust = -.5) +
     labs(y = "Percent", fill="day") +
     facet_grid(~vote) +
-    scale_y_continuous(labels = scales::percent)
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+## ORIENTACIÓ POLITCA VS GEnDER
+ggplot(df, aes(x= politicalOrientation,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$politicalOrientation))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+
+## ORIENTACIÓ POLITCA VS egoposition_immigration_red
+ggplot(df, aes(x= politicalOrientation,  group=egoposition_immigration_red2)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$politicalOrientation))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="day") +
+    facet_grid(~egoposition_immigration_red2) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
 
 ```
 
-
 # 3 - Feature Selection
+
 ```{r include=FALSE}
 
 ```
 
+# 4 - Modeling
 
-
-# 4 - Modeling 
 ## 4.1 - Modeling using numeric variables using transformations if needed.
+
 ## 4.2 - Adding factor main effects to the best model containing numeric variables
+
 ## 4.3 - Adding factor main effects and interactions (limit your statement to order 2) to the best model containing numeric variables.
+
 ## 4.4 - Goodness of fit and Model Interpretation for each proposal (nominal/ordinal).
+
 ## 4.5 - Goodness of fit and Model Interpretation for political orientation (right/center/left). Make your own allocation of political parties to the right/center/left wing orientation.
-
-
-
-
-
-
