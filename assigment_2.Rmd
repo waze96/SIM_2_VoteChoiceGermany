@@ -1,7 +1,7 @@
 ---
-title: 'ASSIGNMENT 2: MEDICAL COST'
+title: 'ASSIGNMENT 2: Vote choice in Germany'
 author: "Jordi Espasa & Eduard Masip"
-date: "2022-11-19"
+date: "2022-11-10"
 output:
   word_document: default
   pdf_document: default
@@ -376,6 +376,104 @@ ggplot(df, aes(x= politicalOrientation,  group=egoposition_immigration_red2)) +
           axis.ticks.x=element_blank() 
     )
 
+ggplot(df, aes(x= ostwest,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$ostwest))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+ggplot(df, aes(x= political_interest,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$political_interest))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+
+### OSTWEST FILTERS
+
+ggplot(df[df$ostwest=='ostwest.yes',], aes(x= political_interest,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$political_interest))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Interest (ostwest.yes)") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+# Curios les noies, a OSTWEST.NO tenen interes politic mes alt
+ggplot(df[df$ostwest=='ostwest.no',], aes(x= political_interest,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$political_interest))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Interest (ostwest.no)") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+# CURIOS OSTWEST.NO els vots Masculins i Femenins estan mes radicalitzats
+ggplot(df[df$ostwest=='ostwest.yes',], aes(x= politicalOrientation,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$politicalOrientation))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation (ostwest.yes)") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+
+ggplot(df[df$ostwest=='ostwest.no',], aes(x= politicalOrientation,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$politicalOrientation))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation (ostwest.no)") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+
+############################ MIRARHO PER PARTITS POLITICS!
+ggplot(df[df$ostwest=='ostwest.yes',], aes(x= vote,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$vote))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation (ostwest.yes)") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+
+ggplot(df[df$ostwest=='ostwest.no',], aes(x= vote,  group=gender)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$vote))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation (ostwest.no)") +
+    facet_grid(~gender) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+
 ```
 
 # 3 - Feature Selection
@@ -387,6 +485,29 @@ ggplot(df, aes(x= politicalOrientation,  group=egoposition_immigration_red2)) +
 # 4 - Modeling
 
 ## 4.1 - Modeling using numeric variables using transformations if needed.
+
+```{r include=FALSE}
+# With baseline reparametrization (To mantain the configuration)
+options(contrasts=c("contr.treatment","contr.treatment"))
+```
+
+```{r}
+#Simplest model: all the numeric variables
+m0 <- glm(vote~gender, data = df ,family=binomial)
+summary(m0)
+
+par(mfrow=c(2,2))
+plot(m0)
+#seems that children is not significant to predict charges
+
+par(mfrow=c(1,1))
+residualPlots( m0 )
+
+avPlots(m0, id=list(method=list(cooks.distance(m0),"x"), n = 15))
+
+marginalModelPlots(m0) #How my model fits the data
+
+```
 
 ## 4.2 - Adding factor main effects to the best model containing numeric variables
 
