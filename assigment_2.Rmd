@@ -19,10 +19,9 @@ requiredPackages <- c("missMDA","effects","FactoMineR","car",
                       "factoextra","RColorBrewer","ggplot2",
                       "dplyr","ggthemes","knitr","MASS",
                       "chemometrics","rpart","ROCR","corrr",
-                      "readxl","RColorBrewer","ggplot2","PerformanceAnalytics",
-                      "corrplot","reshape2","scales","stargazer",
-                      "cowplot","rapportools", "packHV", "chemometrics","lmtest")
-
+                      "readxl","RColorBrewer","ggplot2","PerformanceAnalytics",                           "corrplot","reshape2","scales","stargazer",
+                      "cowplot","rapportools", "packHV", "chemometrics","lmtest",
+                      "AER","nnet","MNLpred")
 
 
 package.check <- lapply(requiredPackages, FUN = function(x) {
@@ -474,6 +473,18 @@ ggplot(df[df$ostwest=='ostwest.no',], aes(x= vote,  group=gender)) +
     )
 
 
+ggplot(df, aes(x= income,  group=politicalOrientation)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$income))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Political Orientation (ostwest.no)") +
+    facet_grid(~politicalOrientation) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+
 ```
 
 # 3 - Feature Selection
@@ -501,12 +512,56 @@ plot(m0)
 #seems that children is not significant to predict charges
 
 par(mfrow=c(1,1))
-residualPlots( m0 )
+residualPlots( m0 ) # NOT USE FOR MULTINOMIAL MODELS
 
 avPlots(m0, id=list(method=list(cooks.distance(m0),"x"), n = 15))
 
 marginalModelPlots(m0) #How my model fits the data
 
+
+#---------------------------------
+ones<-c(rep(1, 1000))
+mm0 <-multinom( politicalOrientation~1, data=df,weight=ones)
+mm1 <-multinom( politicalOrientation~egoposition_immigration_red, data=df,weight=ones )
+mm2 <-multinom( politicalOrientation~ostwest, data=df,weight=ones )
+mm3 <-multinom( politicalOrientation~political_interest, data=df,weight=ones )
+mm4 <-multinom( politicalOrientation~income, data=df,weight=ones )
+mm5 <-multinom( politicalOrientation~gender, data=df,weight=ones )
+mm6 <-multinom( politicalOrientation~egoposition_immigration_red2, data=df,weight=ones )
+mm7 <-multinom( politicalOrientation~egoposition_immigration, data=df,weight=ones )
+mm8 <-multinom( politicalOrientation~egoposition_immigration_red+gender, data=df,weight=ones )
+mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=gles,weight=ones, Hess=TRUE )
+
+mm10 <-multinom( politicalOrientation~egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
+
+# https://rdrr.io/cran/MNLpred/f/vignettes/OVA_Predictions_For_MNL.Rmd
+
+AIC(mm0, mm1,mm2,mm3,mm4,mm5,mm6, mm7,mm8,mm9) # mm3 434.8819
+predict(mm10,type="class")[987]
+df$politicalOrientation[987]
+plot(allEffects(mm7))
+summary(mm9)
+
+#ojo
+pred1 <- mnl_pred_ova(model = mm9,
+                      data = gles,
+                      x = "egoposition_immigration",
+                      by = 1,
+                      seed = "random", # default
+                      nsim = 100, # faster
+                      probs = c(0.025, 0.975)) # default
+
+ggplot(data = pred1$plotdata, aes(x = income, 
+                                  y = mean,
+                                  ymin = lower, ymax = upper)) +
+  geom_ribbon(alpha = 0.1) + # Confidence intervals
+  geom_line() + # Mean
+  facet_wrap(.~ vote, scales = "free_y", ncol = 2) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) + # % labels
+  scale_x_continuous(breaks = c(0:10)) +
+  theme_bw() +
+  labs(y = "Predicted probabilities",
+       x = "Ego-position toward immigration") # Always label your axes ;)
 ```
 
 ## 4.2 - Adding factor main effects to the best model containing numeric variables
