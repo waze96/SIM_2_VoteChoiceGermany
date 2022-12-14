@@ -99,6 +99,19 @@ they belong. This helps us to better understanding when create the model.
 
 ```{r include=FALSE}
 
+intervals <- c(0,2,4,6,8,10)
+
+df$gegopos_immi <- factor(cut(df$egoposition_immigration,breaks=intervals))
+table(df$gegopos_immi)
+
+# mediana dintre de cada grup
+cintervals<- tapply(df$egoposition_immigration,df$gegopos_immi,median)
+
+# ngincome: numeric, mediana segons el grup al que pertany
+df$ngegopos_immi<-factor(cut(df$egoposition_immigration,breaks=intervals))
+df$ngegopos_immi<-factor(df$ngegopos_immi,labels=cintervals)
+df$ngegopos_immi<-as.numeric(levels(df$ngegopos_immi))[df$ngegopos_immi]
+
 # Set Factors
 df$vote=as.factor(df$vote)
 df$egoposition_immigration=as.factor(df$egoposition_immigration)
@@ -551,7 +564,7 @@ pred1 <- mnl_pred_ova(model = mm9,
                       nsim = 100, # faster
                       probs = c(0.025, 0.975)) # default
 
-ggplot(data = pred1$plotdata, aes(x = income, 
+ggplot(data = pred1$plotdata, aes(x = egoposition_immigration, 
                                   y = mean,
                                   ymin = lower, ymax = upper)) +
   geom_ribbon(alpha = 0.1) + # Confidence intervals
@@ -562,6 +575,86 @@ ggplot(data = pred1$plotdata, aes(x = income,
   theme_bw() +
   labs(y = "Predicted probabilities",
        x = "Ego-position toward immigration") # Always label your axes ;)
+```
+
+```{r}
+## SPLIT
+
+set.seed(010195)
+llwork <- sample(1:nrow(gles),round(0.8*nrow(gles),dig=0))
+dfwork <- gles[llwork,]
+dftest <- gles[-llwork,]
+
+mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])), Hess=TRUE )
+
+gles.fin <- mm9
+prob.vote <- gles.fin$fit
+tt <- table(predict(mm9,type="class"),dfwork$vote)
+tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+
+# Model na?ve
+m0 <-multinom( vote~1, data=dfwork,weight=c(rep(1, dim(dfwork)[1])), Hess=TRUE )
+tt <- table(predict(m0,type="class"),dfwork$vote)
+tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+```
+
+```{r}
+
+## SPLIT
+llwork <- sample(1:nrow(df),round(0.8*nrow(df),dig=0))
+dfwork <- df[llwork,]
+dftest <- df[-llwork,]
+
+mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+
+mm91 <-multinom( vote~egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+
+mm91.1 <-multinom( vote~egoposition_immigration_red+political_interest+income+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+
+AIC(mm91,mm91.1)
+
+mm92 <-multinom( vote~egoposition_immigration_red2+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+
+
+om0<-polr(  vote~1, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+om1 <-polr(  vote~egoposition_immigration, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+om2 <-polr(  vote~political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+om3 <-polr(  vote~egoposition_immigration+political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+om3.1 <-polr(  vote~gegopos_immi+political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+om4 <-polr(  vote~egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+
+
+anova(om0,om1,test='Chisq' )
+anova(om0,om2,test='Chisq' )
+anova(om1,om2,test='Chisq' )
+anova(om3,om2,test='Chisq' )
+anova(om3,om3.1,test='Chisq' )
+anova(om4,om3,test='Chisq' )
+
+AIC(mm9,mm91,mm92,mm91.1)
+
+checkModel<-mm91.2
+
+gles.fin <- checkModel
+prob.vote <- gles.fin$fit
+tt <- table(predict(checkModel,type="class"),dfwork$vote)
+tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
 ```
 
 ## 4.2 - Adding factor main effects to the best model containing numeric variables
