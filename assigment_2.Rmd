@@ -500,6 +500,19 @@ ggplot(df, aes(x= income,  group=politicalOrientation)) +
 
 ```
 
+
+## 2.4 - MCA
+
+```{r include=FALSE}
+df
+MCA(X, ncp = 5, graph = TRUE)
+
+
+
+```
+
+
+
 # 3 - Feature Selection
 
 ```{r include=FALSE}
@@ -516,20 +529,6 @@ options(contrasts=c("contr.treatment","contr.treatment"))
 ```
 
 ```{r}
-#Simplest model: all the numeric variables
-m0 <- glm(vote~gender, data = df ,family=binomial)
-summary(m0)
-
-par(mfrow=c(2,2))
-plot(m0)
-#seems that children is not significant to predict charges
-
-par(mfrow=c(1,1))
-residualPlots( m0 ) # NOT USE FOR MULTINOMIAL MODELS
-
-avPlots(m0, id=list(method=list(cooks.distance(m0),"x"), n = 15))
-
-marginalModelPlots(m0) #How my model fits the data
 
 
 #---------------------------------
@@ -620,9 +619,11 @@ mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+os
 
 mm91 <-multinom( vote~egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 
+mm91.2 <-multinom( vote~egoposition_immigration_red2+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+
 mm91.1 <-multinom( vote~egoposition_immigration_red+political_interest+income+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 
-AIC(mm91,mm91.1)
+AIC(mm91,mm91.2)
 
 mm92 <-multinom( vote~egoposition_immigration_red2+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 
@@ -644,7 +645,7 @@ anova(om4,om3,test='Chisq' )
 
 AIC(mm9,mm91,mm92,mm91.1)
 
-checkModel<-mm91.2
+checkModel<-mm91
 
 gles.fin <- checkModel
 prob.vote <- gles.fin$fit
