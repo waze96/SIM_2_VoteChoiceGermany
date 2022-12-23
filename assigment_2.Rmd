@@ -543,7 +543,7 @@ mm5 <-multinom( politicalOrientation~gender, data=df,weight=ones )
 mm6 <-multinom( politicalOrientation~egoposition_immigration_red2, data=df,weight=ones )
 mm7 <-multinom( politicalOrientation~egoposition_immigration, data=df,weight=ones )
 mm8 <-multinom( politicalOrientation~egoposition_immigration_red+gender, data=df,weight=ones )
-mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=gles,weight=ones, Hess=TRUE )
+mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
 
 mm10 <-multinom( politicalOrientation~egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
 
@@ -557,7 +557,7 @@ summary(mm9)
 
 #ojo
 pred1 <- mnl_pred_ova(model = mm9,
-                      data = gles,
+                      data = df,
                       x = "egoposition_immigration",
                       by = 1,
                       seed = "random", # default
@@ -611,21 +611,31 @@ tt
 
 ```{r}
 
+df$imm<-gles$egoposition_immigration
+
 ## SPLIT
 llwork <- sample(1:nrow(df),round(0.8*nrow(df),dig=0))
 dfwork <- df[llwork,]
 dftest <- df[-llwork,]
 
-mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+mm9 <-multinom( vote~imm*gender*ostwest*political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 
 mm91 <-multinom( vote~egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 
 mm91.1 <-multinom( vote~egoposition_immigration_red+political_interest+income+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 
-AIC(mm91,mm91.1)
+AIC(mm9,mm91,mm91.1)
+hist(df$imm)
+smm9<-
+step(mm9)
+smm91<-step(mm91)
+smm91.1<-step(mm91.1)
+
+AIC(smm9,smm91,smm91.1)
 
 mm92 <-multinom( vote~egoposition_immigration_red2+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 
+lda(df, Attrition~x1+x2+x3*x4)
 
 om0<-polr(  vote~1, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
 om1 <-polr(  vote~egoposition_immigration, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
@@ -644,7 +654,7 @@ anova(om4,om3,test='Chisq' )
 
 AIC(mm9,mm91,mm92,mm91.1)
 
-checkModel<-mm91.2
+checkModel<-mm9
 
 gles.fin <- checkModel
 prob.vote <- gles.fin$fit
