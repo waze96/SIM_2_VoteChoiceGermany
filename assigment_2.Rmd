@@ -300,10 +300,9 @@ ggplot(data.frame("amount" = table(df$politicalOrientation)), aes(x="", y=amount
 
 
 colnames(df)
-
 ```
 
-## 2.3 - Profiling Target Variable
+## 2.3 - Profiling Target Variable: Vote
 
 ```{r include=FALSE}
 
@@ -390,18 +389,6 @@ ggplot(df, aes(x= gender,  group=vote)) +
     geom_text(aes( label = scales::percent(..prop..),
                    y= ..prop.. ), stat= "count", vjust = -.5) +
     labs(y = "Percent", fill="Gender") +
-    facet_grid(~vote) +
-    scale_y_continuous(labels = scales::percent) +
-    theme(axis.text.x=element_blank(),
-          axis.ticks.x=element_blank() 
-    )
-
-
-ggplot(df, aes(x= egoposition_immigration_red,  group=vote)) + 
-    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$egoposition_immigration_red))), stat="count") +
-    geom_text(aes( label = scales::percent(..prop..),
-                   y= ..prop.. ), stat= "count", vjust = -.5) +
-    labs(y = "Percentage", fill="egoposition_immigration_red") +
     facet_grid(~vote) +
     scale_y_continuous(labels = scales::percent) +
     theme(axis.text.x=element_blank(),
@@ -530,19 +517,69 @@ ggplot(df[df$ostwest=='ostwest.no',], aes(x= vote,  group=gender)) +
           axis.ticks.x=element_blank() 
     )
 
-
-ggplot(df, aes(x= income,  group=politicalOrientation)) + 
-    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$income))), stat="count") +
-    geom_text(aes( label = scales::percent(..prop..),
-                   y= ..prop.. ), stat= "count", vjust = -.5) +
-    labs(y = "Percent", fill="Political Orientation (ostwest.no)") +
-    facet_grid(~politicalOrientation) +
+# Distribution of votes grouped by income
+ggplot(df, aes(x=vote,  group=income)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$vote))), stat="count") +
+    labs(y = "Percent", fill="Vote") +
+    facet_grid(~income) +
     scale_y_continuous(labels = scales::percent) +
     theme(axis.text.x=element_blank(),
           axis.ticks.x=element_blank() 
     )
 
+# Distribution of AfD votes by gender grouped by income
+ggplot(df[df$vote=='vote.AfD',], aes(x=gender,  group=income)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$gender))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Income (vote=AfD)") +
+    facet_grid(~income) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
 
+# Distribution of immigration opinion grouped by political parties
+ggplot(df, aes(x= egoposition_immigration_red,  group=vote)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels=levels(df$egoposition_immigration_red))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percentage", fill="egoposition_immigration_red") +
+    facet_grid(~vote) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+#  Distribution of AfD votes by income grouped by immigration opinion
+ggplot(df[df$vote=='vote.AfD',], aes(x=income,  group=egoposition_immigration_red)) + 
+    geom_bar(aes(y = ..count.., fill = factor(..x..,labels=levels(df$income)[2:5])), stat="count") +
+    geom_text(aes( label = ..count..,
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Frequency", fill="Income (vote=AfD)") +
+    facet_grid(~egoposition_immigration_red) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+#  Distribution of Gruene votes by income grouped by gender
+ggplot(df[df$vote=='vote.Gruene',], aes(x=gender,  group=income)) + 
+    geom_bar(aes(y = ..count.., fill = factor(..x..,labels=levels(df$gender))), stat="count") +
+    geom_text(aes( label = ..count..,
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Frequency", fill="Income (vote=Gruene)") +
+    facet_grid(~income) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() 
+    )
+
+ggplot(data.frame("amount" = table(df[df$ostwest=='ostwest.no',]$politicalOrientation)), aes(x="", y=amount.Freq, fill=amount.Var1)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  ggtitle("Distribution of Ostwest:No votes") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_discrete(name = "Political Interest")
 ```
 
 ## 2.4 - MCA
