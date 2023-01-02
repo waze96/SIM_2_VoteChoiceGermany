@@ -72,7 +72,7 @@ The data has 1000 individual observations .
 if(!is.null(dev.list())) dev.off() # Clear plots
 rm(list=ls()) # Clean workspace
 
-load("./gles.RData")
+#load("./gles.RData")
 
 df <- gles
 
