@@ -668,9 +668,12 @@ options(contrasts=c("contr.treatment","contr.treatment"))
 
 ```
 
-La idea es entrenar un model binomial per a poder dividir millor en political orientation. Sin embargo aquest model es una puta basura i per tant considero que el fara millor dividir right de center i left
+La idea es entrenar un model binomial per a poder dividir millor en political orientation.
+Sin embargo aquest model es una puta basura i per tant considero que el fara millor
+dividir right de center i left
 
 #Binary model for right+center / left
+
 ```{r}
 
 df$politicalOrientationBinary2<-ifelse(df$politicalOrientation=="politicalOrientation.left",1,0)
@@ -710,7 +713,7 @@ ggplot(dftest, aes(x=idx, y=predictions, color=politicalOrientationBinary2)) +
 
 pred <- ifelse(pred > 0.5,1,0)
 
-tt <- table(pred, dftest$politicalOrientationBinary)
+tt <- table(pred, dftest$politicalOrientationBinary2)
 tt
 
 (accuracy <- sum(diag(tt)) / sum(tt))
@@ -721,11 +724,11 @@ tt
 
 ```
 
-
-aquest model al principi es una puta basura pero despres millora una mica quan recalculo al threshold.
-
+aquest model al principi es una puta basura pero despres millora una mica quan recalculo
+al threshold.
 
 #Binary model for right / left+center
+
 ```{r}
 set.seed(123456)
 llwork <- sample(1:nrow(df),round(0.8*nrow(df),dig=0))
@@ -772,8 +775,8 @@ tt
 
 ```
 
-
 #Multinom model for right / center / left
+
 ```{r}
 
 set.seed(123456)
@@ -833,34 +836,6 @@ exp(coef(hm1m3))[3]
 100*(exp(coef(hm1m3))[3] - 1)
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ```{r}
 ones<-c(rep(1, 1000))
 mm0 <-multinom( politicalOrientation~1, data=df,weight=ones)
@@ -905,9 +880,6 @@ ggplot(data = pred1$plotdata, aes(x = egoposition_immigration,
   labs(y = "Predicted probabilities",
        x = "Ego-position toward immigration") # Always label your axes ;)
 ```
-
-
-
 
 ```{r}
 ## SPLIT
