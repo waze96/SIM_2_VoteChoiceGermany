@@ -68,15 +68,15 @@ str(df)
 
 
 #Dimension reduction of egoposition immigration from 10 to 3.
-df$egoposition_immigration_red2 <- df$egoposition_immigration
+df$egoposition_immigration_red <- df$egoposition_immigration
 
-levels(df$egoposition_immigration_red2) <- list("immigration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
+levels(df$egoposition_immigration_red) <- list("immigration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
                                                "immigration.mid" = c("immgration.3", "immgration.4","immgration.5"),
                                                "immigration.restrictive" = c("immgration.6", "immgration.7", "immgration.8", "immgration.9", "immgration.10"))
 
-df$egoposition_immigration_red22 <- df$egoposition_immigration
+df$egoposition_immigration_red2 <- df$egoposition_immigration
 
-levels(df$egoposition_immigration_red22) <- list("immigration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
+levels(df$egoposition_immigration_red2) <- list("immigration.open" = c("immgration.0", "immgration.1", "immgration.2"), 
                                                 "immigration.open_moderate" = c("immgration.3", "immgration.4"),
                                                 "immigration.moderate" = c("immgration.3", "immgration.5"),
                                                 "immigration.moderate_restrictive" = c("immgration.6", "immgration.7"),  "immigration.restrictive" = c("immgration.8", "immgration.9", "immgration.10"))
@@ -108,8 +108,8 @@ dfwork <- df[llwork,]
 dftest <- df[-llwork,]
 
 bm1.1 <- glm( politicalOrientationBinary ~ 1, family="binomial",data=dfwork)
-bm1.2 <- glm( politicalOrientationBinary ~ egoposition_immigration_red2+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
-bm1.3 <- glm( politicalOrientationBinary ~ egoposition_immigration_red2 + gender + ostwest, family="binomial",data=dfwork)
+bm1.2 <- glm( politicalOrientationBinary ~ egoposition_immigration+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
+bm1.3 <- glm( politicalOrientationBinary ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
 
 # Necesari? 
 #bm2$null.dev - bm2$dev
@@ -156,8 +156,8 @@ dfwork <- newdf[llwork,]
 dftest <- newdf[-llwork,]
 
 bm2.1 <- glm( politicalOrientation ~ 1, family="binomial",data=dfwork)
-bm2.2 <- glm( politicalOrientation ~ egoposition_immigration_red2+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
-bm2.3 <- glm( politicalOrientation ~ egoposition_immigration_red2 + gender + ostwest, family="binomial",data=dfwork)
+bm2.2 <- glm( politicalOrientation ~ egoposition_immigration+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
+bm2.3 <- glm( politicalOrientation ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
 
 
 # Necesari? 
@@ -207,8 +207,8 @@ dfwork <- newdf[llwork,]
 dftest <- newdf[-llwork,]
 
 bm3.1 <- glm( vote ~ 1, family="binomial",data=dfwork)
-bm3.2 <- glm( vote ~ egoposition_immigration_red2+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
-bm3.3 <- glm( vote ~ egoposition_immigration_red2 + gender + ostwest, family="binomial",data=dfwork)
+bm3.2 <- glm( vote ~ egoposition_immigration+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
+bm3.3 <- glm( vote ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
 
 # NECESARI?
 bm3.2$null.dev - bm3.2$dev
@@ -256,10 +256,10 @@ llwork <- sample(1:nrow(newdf),round(0.8*nrow(newdf),dig=0))
 dfwork <- newdf[llwork,]
 dftest <- newdf[-llwork,]
 
-ones<-ifelse(dfwork$votMult=="vote.FDP",2.1,1)
+ones<-ifelse(dfwork$votMult=="vote.FDP",2,1)
 mm1 <- multinom( votMult ~ 1,data=dfwork,weight=ones )
-mm2 <- multinom( votMult ~ egoposition_immigration_red2+political_interest+income+gender+ostwest, data=dfwork,weight=ones )
-mm3 <- multinom( votMult ~ egoposition_immigration_red2 + gender + ostwest, data=dfwork,weight=ones )
+mm2 <- multinom( votMult ~ egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=ones )
+mm3 <- multinom( votMult ~ egoposition_immigration + gender + ostwest, data=dfwork,weight=ones )
 
 
 
