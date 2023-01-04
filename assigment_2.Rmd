@@ -741,7 +741,7 @@ dftest <- df[-llwork,]
 bm0 <- glm( politicalOrientationBinary ~ egoposition_immigration, family="binomial",data=dfwork)
 bm1 <- glm( politicalOrientationBinary ~ egoposition_immigration + ostwest, family="binomial",data=dfwork)
 bm2 <- glm( politicalOrientationBinary ~ egoposition_immigration + political_interest + income + gender + ostwest, family="binomial",data=dfwork)
-bm3 <- glm( politicalOrientationBinary ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
+bm3 <- glm( politicalOrientationBinary ~ egoposition_immigration_red + gender + ostwest, family="binomial",data=dfwork)
 bm4 <- glm( politicalOrientationBinary ~ egoposition_immigration * gender * ostwest, family="binomial",data=dfwork)
 
 bm0$null.dev - bm0$dev
@@ -765,8 +765,8 @@ dftest$idx <- c(1:length(dftest$predictions))
 ggplot(dftest, aes(x=idx, y=predictions, color=politicalOrientationBinary)) +
   geom_point()
 
-pred <- ifelse(pred > 0.5,1,0)
-#pred <- ifelse(pred > 0.185,1,0)
+#pred <- ifelse(pred > 0.5,1,0)
+pred <- ifelse(pred > 0.18,'right', 'left_center')
 
 tt <- table(pred, dftest$politicalOrientationBinary)
 tt
@@ -777,6 +777,9 @@ diag(tt)
 (recall <- (diag(tt) / colSums(tt)))
 (f1 <- (2*precision*recall/(precision+recall)))
 
+
+plot(allEffects(bm3))
+summary(bm3)
 ```
 
 #Multinom model for right / center / left
