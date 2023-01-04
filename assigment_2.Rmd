@@ -72,7 +72,7 @@ The data has 1000 individual observations .
 if(!is.null(dev.list())) dev.off() # Clear plots
 rm(list=ls()) # Clean workspace
 
-load("./gles.RData")
+#load("./gles.RData")
 
 df <- gles
 
@@ -730,26 +730,28 @@ al threshold.
 #Binary model for right / left+center
 
 ```{r}
+df$politicalOrientationBinary<-ifelse(df$politicalOrientation=="politicalOrientation.right",1,0)
+df$politicalOrientationBinary<-factor(df$politicalOrientationBinary,labels=c("left_center","right"))
+
 set.seed(123456)
 llwork <- sample(1:nrow(df),round(0.8*nrow(df),dig=0))
 dfwork <- df[llwork,]
 dftest <- df[-llwork,]
 
+bm0 <- glm( politicalOrientationBinary ~ egoposition_immigration, family="binomial",data=dfwork)
+bm1 <- glm( politicalOrientationBinary ~ egoposition_immigration + ostwest, family="binomial",data=dfwork)
+bm2 <- glm( politicalOrientationBinary ~ egoposition_immigration + political_interest + income + gender + ostwest, family="binomial",data=dfwork)
+bm3 <- glm( politicalOrientationBinary ~ egoposition_immigration_red + gender + ostwest, family="binomial",data=dfwork)
+bm4 <- glm( politicalOrientationBinary ~ egoposition_immigration * gender * ostwest, family="binomial",data=dfwork)
 
-df$politicalOrientationBinary<-ifelse(df$politicalOrientation=="politicalOrientation.right",1,0)
-df$politicalOrientationBinary<-factor(df$politicalOrientationBinary,labels=c("left_center","right"))
-
-
-bm1 <- glm( politicalOrientationBinary ~ 1, family="binomial",data=dfwork)
-bm2 <- glm( politicalOrientationBinary ~ egoposition_immigration+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
-bm3 <- glm( politicalOrientationBinary ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
-
-
+bm0$null.dev - bm0$dev
+bm1$null.dev - bm1$dev
 bm2$null.dev - bm2$dev
 bm3$null.dev - bm3$dev
+bm4$null.dev - bm4$dev
 
-
-AIC(bm2, bm3) # hm1m3 325.7325
+AIC(bm0, bm1, bm2, bm3, bm4) # hm1m3 325.7325
+step(bm4)
 step(bm2)
 anova(bm2, bm3, test="Chisq")
 plot(allEffects(bm3))
@@ -763,9 +765,66 @@ dftest$idx <- c(1:length(dftest$predictions))
 ggplot(dftest, aes(x=idx, y=predictions, color=politicalOrientationBinary)) +
   geom_point()
 
-pred <- ifelse(pred > 0.13,1,0)
+#pred <- ifelse(pred > 0.5,1,0)
+pred <- ifelse(pred > 0.18,'right', 'left_center')
 
 tt <- table(pred, dftest$politicalOrientationBinary)
+tt
+
+diag(tt)
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+
+plot(allEffects(bm3))
+summary(bm3)
+```
+
+#Multinom model for right / center / left
+
+```{R}
+set.seed(123456)
+
+newdf <- df[df$politicalOrientation %in% c('politicalOrientation.left','politicalOrientation.center'), ]
+newdf$politicalOrientationBinary<-ifelse(newdf$politicalOrientation=="politicalOrientation.left",1,0)
+newdf$politicalOrientationBinary<-factor(newdf$politicalOrientationBinary,labels=c("left","center"))
+
+llwork <- sample(1:nrow(newdf),round(0.8*nrow(newdf),dig=0))
+dfwork <- newdf[llwork,]
+dftest <- newdf[-llwork,]
+
+bm0 <- glm( politicalOrientation ~ egoposition_immigration, family="binomial",data=dfwork)
+bm1 <- glm( politicalOrientation ~ egoposition_immigration + ostwest, family="binomial",data=dfwork)
+bm2 <- glm( politicalOrientation ~ egoposition_immigration+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
+bm3 <- glm( politicalOrientation ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
+bm4 <- glm( politicalOrientation ~ egoposition_immigration * gender * ostwest, family="binomial",data=dfwork)
+
+bm0$null.dev - bm0$dev
+bm1$null.dev - bm1$dev
+bm2$null.dev - bm2$dev
+bm3$null.dev - bm3$dev
+bm4$null.dev - bm4$dev
+
+AIC(bm0,bm1,bm2, bm3, bm4)
+step(bm2)
+anova(bm2, bm3, test="Chisq") # After step seems better to keep bm2??
+plot(allEffects(bm3))
+
+
+pred <- predict(bm3, newdata = dftest, type = "response")
+
+dftest$predictions <- pred
+dftest$idx <- c(1:length(dftest$predictions))
+
+ggplot(dftest, aes(x=idx, y=predictions, color=politicalOrientation)) +
+  geom_point()
+
+predClass <- ifelse(pred > 0.31,'Left','Center')
+dftest$predictedClass <- predClass
+
+tt <- table(dftest$predictedClass, dftest$politicalOrientationBinary)
 tt
 
 (accuracy <- sum(diag(tt)) / sum(tt))
@@ -773,9 +832,12 @@ tt
 (recall <- (diag(tt) / colSums(tt)))
 (f1 <- (2*precision*recall/(precision+recall)))
 
+
 ```
 
-#Multinom model for right / center / left
+
+
+
 
 ```{r}
 
@@ -796,15 +858,27 @@ mm5 <-multinom( politicalOrientation~gender, data=df,weight=ones )
 mm6 <-multinom( politicalOrientation~egoposition_immigration_red2, data=df,weight=ones )
 mm7 <-multinom( politicalOrientation~egoposition_immigration, data=df,weight=ones )
 mm8 <-multinom( politicalOrientation~egoposition_immigration_red+gender, data=df,weight=ones )
-mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])), Hess=TRUE )
-mm10 <-multinom( politicalOrientation ~ egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])), Hess=TRUE )
-mm11 <-multinom( politicalOrientation ~ egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])), Hess=TRUE )
-mm12 <- step(mm10)
+mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
+mm10 <-multinom( politicalOrientation ~ egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
+mm11 <-multinom( politicalOrientation ~ egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
+mm12 <- step(mm11)
 
 #comparar modelos
+mm0$dev - mm0$dev
+mm0$dev - mm1$dev
+mm0$dev - mm2$dev
+mm0$dev - mm3$dev
+mm0$dev - mm4$dev
+mm0$dev - mm5$dev
+mm0$dev - mm6$dev
+mm0$dev - mm7$dev
+mm0$dev - mm8$dev
+mm0$dev - mm9$dev
 mm0$dev - mm10$dev
-AIC(mm10)
-AIC(hm1m1,hm1m4,hm1m2, hm1m3,hm1m6) 
+mm0$dev - mm11$dev
+mm0$dev - mm12$dev
+
+AIC(mm0,mm1,mm2,mm3,mm4,mm5,mm6,mm7,mm8,mm9,mm10,mm11) 
 anova(hm1m8, hm1m9, test="Chisq")
 
 df.fin <- mm10
@@ -821,7 +895,7 @@ tt
 
 
 #Efectos modelos
-plot(allEffects(hm1m3))
+plot(allEffects(mm10))
 
 # Sons effect
 coef(hm1m3)
@@ -837,52 +911,7 @@ exp(coef(hm1m3))[3]
 ```
 
 ```{r}
-ones<-c(rep(1, 1000))
-mm0 <-multinom( politicalOrientation~1, data=df,weight=ones)
-mm1 <-multinom( politicalOrientation~egoposition_immigration_red, data=df,weight=ones )
-mm2 <-multinom( politicalOrientation~ostwest, data=df,weight=ones )
-mm3 <-multinom( politicalOrientation~political_interest, data=df,weight=ones )
-mm4 <-multinom( politicalOrientation~income, data=df,weight=ones )
-mm5 <-multinom( politicalOrientation~gender, data=df,weight=ones )
-mm6 <-multinom( politicalOrientation~egoposition_immigration_red2, data=df,weight=ones )
-mm7 <-multinom( politicalOrientation~egoposition_immigration, data=df,weight=ones )
-mm8 <-multinom( politicalOrientation~egoposition_immigration_red+gender, data=df,weight=ones )
-mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
-mm10 <-multinom( politicalOrientation~egoposition_immigration+political_interest+income+gender+ostwest, data=df,weight=ones, Hess=TRUE )
-
-# https://rdrr.io/cran/MNLpred/f/vignettes/OVA_Predictions_For_MNL.Rmd
-
-
-AIC(mm0, mm1,mm2,mm3,mm4,mm5,mm6, mm7,mm8,mm9, mm10) # mm1 mm6 mm7 mm8 mm10
-predict(mm10,type="class")[987]
-df$politicalOrientation[987]
-plot(allEffects(mm7))
-summary(mm9)
-
-#ojo
-pred1 <- mnl_pred_ova(model = mm9,
-                      data = df,
-                      x = "egoposition_immigration",
-                      by = 1,
-                      seed = "random", # default
-                      nsim = 100, # faster
-                      probs = c(0.025, 0.975)) # default
-
-ggplot(data = pred1$plotdata, aes(x = egoposition_immigration, 
-                                  y = mean,
-                                  ymin = lower, ymax = upper)) +
-  geom_ribbon(alpha = 0.1) + # Confidence intervals
-  geom_line() + # Mean
-  facet_wrap(.~ vote, scales = "free_y", ncol = 2) +
-  scale_y_continuous(labels = percent_format(accuracy = 1)) + # % labels
-  scale_x_continuous(breaks = c(0:10)) +
-  theme_bw() +
-  labs(y = "Predicted probabilities",
-       x = "Ego-position toward immigration") # Always label your axes ;)
-```
-
-```{r}
-## SPLIT
+## VOTE
 
 set.seed(010195)
 llwork <- sample(1:nrow(gles),round(0.8*nrow(gles),dig=0))
