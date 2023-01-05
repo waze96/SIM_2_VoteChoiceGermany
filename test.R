@@ -207,22 +207,83 @@ dfwork <- newdf[llwork,]
 dftest <- newdf[-llwork,]
 
 bm3.1 <- glm( vote ~ 1, family="binomial",data=dfwork)
-bm3.2 <- glm( vote ~ egoposition_immigration+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
-bm3.3 <- glm( vote ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
+bm3.2 <- glm( vote ~ egoposition_immigration_red+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
+bm3.3 <- glm( vote ~ egoposition_immigration_red + ostwest, family="binomial",data=dfwork)
+bm3.4 <- glm( vote ~ egoposition_immigration_red + gender + ostwest, family="binomial",data=dfwork)
 
-# NECESARI?
+
+# Comparing models
 bm3.2$null.dev - bm3.2$dev
 bm3.3$null.dev - bm3.3$dev
+bm3.4$null.dev - bm3.4$dev
 
-
-AIC(bm3.2, bm3.3) # bm3 288.8330
-step(bm3.2)
-anova(bm3.2, bm3.3, test="Chisq") # After step seems better to keep bm2??
+AIC(bm3.2, bm3.3, bm3.4) 
+plot(allEffects(bm3.2))
 plot(allEffects(bm3.3))
+plot(allEffects(bm3.4))
 
+# Validating model 3.2 with Train dataset
+pred <- predict(bm3.2, newdata = dfwork, type = "response")
+dfwork$predictions <- pred
+dfwork$idx <- c(1:length(dfwork$predictions))
 
-pred <- predict(bm3.3, newdata = dftest, type = "response")
+ggplot(dfwork, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.45)
 
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
+dfwork$predictedClass <- predClass
+
+tt <- table(dfwork$predictedClass, dfwork$voteBinary)
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 3.3 with Train dataset
+pred <- predict(bm3.3, newdata = dfwork, type = "response")
+dfwork$predictions <- pred
+dfwork$idx <- c(1:length(dfwork$predictions))
+
+ggplot(dfwork, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.45)
+
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
+dfwork$predictedClass <- predClass
+
+tt <- table(dfwork$predictedClass, dfwork$voteBinary)
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 3.4 with Train dataset
+pred <- predict(bm3.4, newdata = dfwork, type = "response")
+dfwork$predictions <- pred
+dfwork$idx <- c(1:length(dfwork$predictions))
+
+ggplot(dfwork, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.45)
+
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
+dfwork$predictedClass <- predClass
+
+tt <- table(dfwork$predictedClass, dfwork$voteBinary)
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 3.4 with Test dataset
+pred <- predict(bm3.4, newdata = dftest, type = "response")
 dftest$predictions <- pred
 dftest$idx <- c(1:length(dftest$predictions))
 
@@ -230,11 +291,11 @@ ggplot(dftest, aes(x=idx, y=predictions, color=vote)) +
   geom_point() +
   geom_hline(yintercept=0.45)
 
-predClass <- ifelse(pred <= 0.45,'GRUENE', 'LINKE')
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
 dftest$predictedClass <- predClass
 
 tt <- table(dftest$predictedClass, dftest$voteBinary)
-tt
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
 
 (accuracy <- sum(diag(tt)) / sum(tt))
 (precision <- diag(tt) / rowSums(tt))
@@ -256,43 +317,50 @@ llwork <- sample(1:nrow(newdf),round(0.8*nrow(newdf),dig=0))
 dfwork <- newdf[llwork,]
 dftest <- newdf[-llwork,]
 
-ones<-ifelse(dfwork$votMult=="vote.FDP",2,1)
+ones<-ifelse(dfwork$votMult=="vote.FDP",1.7,1)
 mm1 <- multinom( votMult ~ 1,data=dfwork,weight=ones )
-mm2 <- multinom( votMult ~ egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=ones )
-mm3 <- multinom( votMult ~ egoposition_immigration + gender + ostwest, data=dfwork,weight=ones )
+mm2 <- multinom( votMult ~ egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=ones )
+mm3 <- multinom( votMult ~ egoposition_immigration_red + ostwest, data=dfwork,weight=ones )
+mm4 <- multinom( votMult ~ egoposition_immigration_red + gender + ostwest, data=dfwork,weight=ones )
 
 
 
-AIC(mm2, mm3) # bm3 288.8330
-step(mm2)
-anova(mm2, mm3, test="Chisq") # After step seems better to keep bm2??
+AIC(mm2, mm3, mm4) # bm3 288.8330
+plot(allEffects(mm2))
 plot(allEffects(mm3))
+plot(allEffects(mm4))
 
 
-pred <- predict(mm3, newdata = dftest, type = "probs")
+# Validating model 2 with Train dataset
+dfwork$predictedClass <- predict(mm2, newdata = dfwork, type = "class")
+tt <- table(dfwork$predictedClass,dfwork$votMult); tt
 
-dftest$predictionsCDUCSU <- pred[,1]
-dftest$predictionsFDP <- pred[,2]
-dftest$predictionsSPD <- pred[,3]
-dftest$idx <- c(1:length(dftest$predictionsCDUCSU))
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
 
-ggplot(dftest, aes(x=idx, y=predictionsCDUCSU, color=votMult)) +
-  geom_point() +
-  geom_hline(yintercept=0.41)
+# Validating model 3 with Train dataset
+dfwork$predictedClass <- predict(mm3, newdata = dfwork, type = "class")
+tt <- table(dfwork$predictedClass,dfwork$votMult); tt
 
-ggplot(dftest, aes(x=idx, y=predictionsFDP, color=votMult)) +
-  geom_point() +
-  geom_hline(yintercept=0.1)
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
 
-ggplot(dftest, aes(x=idx, y=predictionsSPD, color=votMult)) +
-  geom_point() +
-  geom_hline(yintercept=0.41)
+# Validating model 4 with Train dataset
+dfwork$predictedClass <- predict(mm4, newdata = dfwork, type = "class")
+tt <- table(dfwork$predictedClass,dfwork$votMult); tt
 
-#predClass <- ifelse(pred <= 0.45,'GRUENE', 'LINKE')
-#dftest$predictedClass <- predClass
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
 
-tt <- table(predict(mm3, newdata = dftest, type = "class"),dftest$votMult)
-tt
+# Validating model 4 with Test dataset
+dftest$predictedClass <- predict(mm2, newdata = dftest, type = "class")
+tt <- table(dftest$predictedClass,dftest$votMult); tt
 
 (accuracy <- sum(diag(tt)) / sum(tt))
 (precision <- diag(tt) / rowSums(tt))
@@ -336,22 +404,27 @@ ggplot(df1, aes(x=idx, y=predictions, color=politicalOrientation)) +
   geom_point() +
   geom_hline(yintercept=0.31)
 
-df1$predictedPoliticalOrientation <- ifelse(pred > 0.31,'pred.Left','pred.Center')       # mantenir el inicial?
+df1$predictedPoliticalOrientation <- ifelse(pred > 0.31,'pred.Left','pred.Center')
 
 
 #########################
 # (GRUENE OR LINKE)
 #########################
 df2<-df1[df1$predictedPoliticalOrientation=='pred.Left',]
-pred <- predict(bm3.3, newdata = df2, type = "response")
-df2$predictedParty <- ifelse(pred <= 0.45,'pred.Gruene','pred.LINKE')       # mantenir el inicial?
+pred <- predict(bm3.4, newdata = df2, type = "response")
+df2$predictions <- pred
+
+ggplot(df2, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.47)
+
+df2$predictedParty <- ifelse(pred <= 0.47,'pred.Gruene','pred.LINKE')
 
 #########################
 # (SPD OR CDU/CSU OR FDP)
 #########################
 df3<-df1[df1$predictedPoliticalOrientation=='pred.Center',]
-pred <- predict(mm3, newdata = df3, type = "probs")
-df3$predictedParty <- predict(mm3, newdata = df3, type = "class")
+df3$predictedParty <- predict(mm2, newdata = df3, type = "class")
 
 #########################
 # JOIN DATASETS AND VALIDATE HIERARCHICAL MODEL

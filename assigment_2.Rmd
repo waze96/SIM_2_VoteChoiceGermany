@@ -659,28 +659,19 @@ ggplot(df, aes(x= income,  group=politicalOrientation)) +
 
 # 4 - Modeling
 
-## 4.1 - Modeling using numeric variables using transformations if needed.
+## 4.1 - Political Orientation Modeling
+
+### 4.1.1 - Binary model for Right and Left + Center
 
 ```{r include=FALSE}
-
 # With baseline reparametrization (To mantain the configuration)
 options(contrasts=c("contr.treatment","contr.treatment"))
-
-```
-
-La idea es entrenar un model binomial per a poder dividir millor en political orientation.
-Sin embargo aquest model es una puta basura i per tant considero que el fara millor
-dividir right de center i left
-
-#Binary model for right+center / left
-
-```{r}
 
 df$politicalOrientationBinary2<-ifelse(df$politicalOrientation=="politicalOrientation.left",1,0)
 df$politicalOrientationBinary2<-factor(df$politicalOrientationBinary2,labels=c("center_right","left"))
 
 
-set.seed(123456)
+set.seed(1234567)
 llwork <- sample(1:nrow(df),round(0.8*nrow(df),dig=0))
 dfwork <- df[llwork,]
 dftest <- df[-llwork,]
@@ -724,16 +715,13 @@ tt
 
 ```
 
-aquest model al principi es una puta basura pero despres millora una mica quan recalculo
-al threshold.
-
-#Binary model for right / left+center
+### 4.1.2 - Binary model for Right and Left + Center (Recalculating threshold)
 
 ```{r}
 df$politicalOrientationBinary<-ifelse(df$politicalOrientation=="politicalOrientation.right",1,0)
 df$politicalOrientationBinary<-factor(df$politicalOrientationBinary,labels=c("left_center","right"))
 
-set.seed(123456)
+set.seed(1234567)
 llwork <- sample(1:nrow(df),round(0.8*nrow(df),dig=0))
 dfwork <- df[llwork,]
 dftest <- df[-llwork,]
@@ -780,12 +768,7 @@ diag(tt)
 
 plot(allEffects(bm3))
 summary(bm3)
-```
 
-#Multinom model for right / center / left
-
-```{R}
-set.seed(123456)
 
 newdf <- df[df$politicalOrientation %in% c('politicalOrientation.left','politicalOrientation.center'), ]
 newdf$politicalOrientationBinary<-ifelse(newdf$politicalOrientation=="politicalOrientation.left",1,0)
@@ -835,9 +818,59 @@ tt
 
 ```
 
+### 4.1.3 - Model for Center and Left
+
+```{r}
+
+set.seed(1234567)
+
+newdf <- df[df$politicalOrientation %in% c('politicalOrientation.left','politicalOrientation.center'), ]
+newdf$politicalOrientationBinary<-ifelse(newdf$politicalOrientation=="politicalOrientation.left",1,0)
+newdf$politicalOrientationBinary<-factor(newdf$politicalOrientationBinary,labels=c("left","center"))
+
+llwork <- sample(1:nrow(newdf),round(0.8*nrow(newdf),dig=0))
+dfwork <- newdf[llwork,]
+dftest <- newdf[-llwork,]
+
+bm2.1 <- glm( politicalOrientation ~ 1, family="binomial",data=dfwork)
+bm2.2 <- glm( politicalOrientation ~ egoposition_immigration+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
+bm2.3 <- glm( politicalOrientation ~ egoposition_immigration + gender + ostwest, family="binomial",data=dfwork)
 
 
+# Necesari? 
+#bm2.2$null.dev - bm2.2$dev
+#bm2.3$null.dev - bm2.3$dev
 
+
+AIC(bm2.2, bm2.3) # bm3 288.8330
+step(bm2.2)
+anova(bm2.2, bm2.3, test="Chisq") # After step seems better to keep bm2??
+plot(allEffects(bm2.3))
+
+
+pred <- predict(bm2.3, newdata = dftest, type = "response")
+
+dftest$predictions <- pred
+dftest$idx <- c(1:length(dftest$predictions))
+
+ggplot(dftest, aes(x=idx, y=predictions, color=politicalOrientation)) +
+  geom_point() +
+  geom_hline(yintercept=0.31)
+
+predClass <- ifelse(pred > 0.31,'Left','Center')
+dftest$predictedClass <- predClass
+
+tt <- table(dftest$predictedClass, dftest$politicalOrientationBinary)
+tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+```
+
+### 4.1.4 - Multinom model for Right / Center / Left
 
 ```{r}
 
@@ -879,7 +912,6 @@ mm0$dev - mm11$dev
 mm0$dev - mm12$dev
 
 AIC(mm0,mm1,mm2,mm3,mm4,mm5,mm6,mm7,mm8,mm9,mm10,mm11) 
-anova(hm1m8, hm1m9, test="Chisq")
 
 df.fin <- mm10
 prob.vote <- df.fin$fit
@@ -898,114 +930,275 @@ tt
 plot(allEffects(mm10))
 
 # Sons effect
-coef(hm1m3)
-exp(coef(hm1m3))
-100*(exp((coef(hm1m3))[2]) - 1)
+#coef(hm1m3)
+#exp(coef(hm1m3))
+#100*(exp((coef(hm1m3))[2]) - 1)
+
 # Having sons decreases on average the relative probability of working vs non_working by 79.31% all else being equal
-prop.table(table(womenlf$bwork))
+#prop.table(table(womenlf$bwork))
 
 # Income effect: odds of working decrease for each year by 4.14% and in 0.01 probability units
-coef(hm1m3)[3]
-exp(coef(hm1m3))[3]
-100*(exp(coef(hm1m3))[3] - 1)
+#coef(hm1m3)[3]
+#exp(coef(hm1m3))[3]
+#100*(exp(coef(hm1m3))[3] - 1)
 ```
+
+## 4.2 - Vote Prediction Modeling
+
+### 4.2.1 - Binary model for Left-wing parties: Gruene and LINKE
 
 ```{r}
-## VOTE
+set.seed(1234567)
 
-set.seed(010195)
-llwork <- sample(1:nrow(gles),round(0.8*nrow(gles),dig=0))
-dfwork <- gles[llwork,]
-dftest <- gles[-llwork,]
+newdf <- df[df$politicalOrientation =='politicalOrientation.left', ]
+newdf$voteBinary<-ifelse(newdf$vote=="vote.Gruene",1,0)
+newdf$voteBinary<-factor(newdf$voteBinary,labels=c("LINKE","GRUENE"))
 
-mm9 <-multinom( vote~egoposition_immigration+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])), Hess=TRUE )
+llwork <- sample(1:nrow(newdf),round(0.8*nrow(newdf),dig=0))
+dfwork <- newdf[llwork,]
+dftest <- newdf[-llwork,]
 
-gles.fin <- mm9
-prob.vote <- gles.fin$fit
-tt <- table(predict(mm9,type="class"),dfwork$vote)
-tt
+bm3.1 <- glm( vote ~ 1, family="binomial",data=dfwork)
+bm3.2 <- glm( vote ~ egoposition_immigration_red+political_interest+income+gender+ostwest, family="binomial",data=dfwork)
+bm3.3 <- glm( vote ~ egoposition_immigration_red + ostwest, family="binomial",data=dfwork)
+bm3.4 <- glm( vote ~ egoposition_immigration_red + gender + ostwest, family="binomial",data=dfwork)
+
+
+# Comparing models
+bm3.2$null.dev - bm3.2$dev
+bm3.3$null.dev - bm3.3$dev
+bm3.4$null.dev - bm3.4$dev
+
+AIC(bm3.2, bm3.3, bm3.4) 
+plot(allEffects(bm3.2))
+plot(allEffects(bm3.3))
+plot(allEffects(bm3.4))
+
+# Validating model 3.2 with Train dataset
+pred <- predict(bm3.2, newdata = dfwork, type = "response")
+dfwork$predictions <- pred
+dfwork$idx <- c(1:length(dfwork$predictions))
+
+ggplot(dfwork, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.45)
+
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
+dfwork$predictedClass <- predClass
+
+tt <- table(dfwork$predictedClass, dfwork$voteBinary)
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
 
 (accuracy <- sum(diag(tt)) / sum(tt))
 (precision <- diag(tt) / rowSums(tt))
 (recall <- (diag(tt) / colSums(tt)))
 (f1 <- (2*precision*recall/(precision+recall)))
 
+# Validating model 3.3 with Train dataset
+pred <- predict(bm3.3, newdata = dfwork, type = "response")
+dfwork$predictions <- pred
+dfwork$idx <- c(1:length(dfwork$predictions))
 
-# Model na?ve
-m0 <-multinom( vote~1, data=dfwork,weight=c(rep(1, dim(dfwork)[1])), Hess=TRUE )
-tt <- table(predict(m0,type="class"),dfwork$vote)
-tt
+ggplot(dfwork, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.45)
+
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
+dfwork$predictedClass <- predClass
+
+tt <- table(dfwork$predictedClass, dfwork$voteBinary)
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 3.4 with Train dataset
+pred <- predict(bm3.4, newdata = dfwork, type = "response")
+dfwork$predictions <- pred
+dfwork$idx <- c(1:length(dfwork$predictions))
+
+ggplot(dfwork, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.45)
+
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
+dfwork$predictedClass <- predClass
+
+tt <- table(dfwork$predictedClass, dfwork$voteBinary)
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 3.4 with Test dataset
+pred <- predict(bm3.4, newdata = dftest, type = "response")
+dftest$predictions <- pred
+dftest$idx <- c(1:length(dftest$predictions))
+
+ggplot(dftest, aes(x=idx, y=predictions, color=vote)) +
+  geom_point() +
+  geom_hline(yintercept=0.45)
+
+predClass <- ifelse(pred <= 0.45,'pred.GRUENE', 'pred.LINKE')
+dftest$predictedClass <- predClass
+
+tt <- table(dftest$predictedClass, dftest$voteBinary)
+tt <-tt[order(row.names(x = tt)), order(colnames(x = tt))]; tt
 
 (accuracy <- sum(diag(tt)) / sum(tt))
 (precision <- diag(tt) / rowSums(tt))
 (recall <- (diag(tt) / colSums(tt)))
 (f1 <- (2*precision*recall/(precision+recall)))
 ```
+
+### 4.2.2 - Model SPD / CDU_CSU / FDP
+
+```{r}
+set.seed(1234567)
+
+newdf <- df[df$politicalOrientation =='politicalOrientation.center', ]
+newdf$votMult<-ifelse(newdf$vote=="vote.SPD","vote.SPD",ifelse(newdf$vote=="vote.CDU/CSU","vote.CDU/CSU","vote.FDP"))
+newdf$votMult<-as.factor(newdf$votMult)
+
+llwork <- sample(1:nrow(newdf),round(0.8*nrow(newdf),dig=0))
+dfwork <- newdf[llwork,]
+dftest <- newdf[-llwork,]
+
+ones<-ifelse(dfwork$votMult=="vote.FDP",1.7,1)
+mm1 <- multinom( votMult ~ 1,data=dfwork,weight=ones )
+mm2 <- multinom( votMult ~ egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=ones )
+mm3 <- multinom( votMult ~ egoposition_immigration_red + ostwest, data=dfwork,weight=ones )
+mm4 <- multinom( votMult ~ egoposition_immigration_red + gender + ostwest, data=dfwork,weight=ones )
+
+
+AIC(mm2, mm3, mm4) # mm2
+plot(allEffects(mm2))
+plot(allEffects(mm3))
+plot(allEffects(mm4))
+
+
+# Validating model 2 with Train dataset
+dfwork$predictedClass <- predict(mm2, newdata = dfwork, type = "class")
+tt <- table(dfwork$predictedClass,dfwork$votMult); tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 3 with Train dataset
+dfwork$predictedClass <- predict(mm3, newdata = dfwork, type = "class")
+tt <- table(dfwork$predictedClass,dfwork$votMult); tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 4 with Train dataset
+dfwork$predictedClass <- predict(mm4, newdata = dfwork, type = "class")
+tt <- table(dfwork$predictedClass,dfwork$votMult); tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+# Validating model 4 with Test dataset
+dftest$predictedClass <- predict(mm2, newdata = dftest, type = "class")
+tt <- table(dftest$predictedClass,dftest$votMult); tt
+
+(accuracy <- sum(diag(tt)) / sum(tt))
+(precision <- diag(tt) / rowSums(tt))
+(recall <- (diag(tt) / colSums(tt)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+```
+
+## 4.3 - Testing the hierarchical model
+
+### 4.3.1 - Right OR Left_Center
 
 ```{r}
 
-df$imm<-gles$egoposition_immigration
+set.seed(1234567)
+df$idx <- c(1:length(df$vote))
 
-## SPLIT
-llwork <- sample(1:nrow(df),round(0.8*nrow(df),dig=0))
-dfwork <- df[llwork,]
-dftest <- df[-llwork,]
+df$politicalOrientationBinary<-as.factor(ifelse(df$politicalOrientation=="politicalOrientation.right","right","left_center"))
+pred <- predict(bm3, newdata = df, type = "response")
+df$predictions <- pred
 
-mm9 <-multinom( vote~imm*gender*ostwest*political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+ggplot(df, aes(x=idx, y=predictions, color=politicalOrientationBinary)) +
+  geom_point() +
+  geom_hline(yintercept=0.2)
 
-mm91 <-multinom( vote~egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
+df$predictedPoliticalOrientation <- as.factor(ifelse(pred > 0.2,'pred.Right','pred.Left_Center')) # mantenir el inicial?
+df$predictedParty <- as.factor(ifelse(df$predictedPoliticalOrientation == 'pred.Right','pred.AfD','-'))
 
-mm91.2 <-multinom( vote~egoposition_immigration_red2+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-
-mm91.1 <-multinom( vote~egoposition_immigration_red+political_interest+income+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-
-AIC(mm9,mm91,mm91.1)
-hist(df$imm)
-smm9<-
-step(mm9)
-smm91<-step(mm91)
-smm91.1<-step(mm91.1)
-
-AIC(smm9,smm91,smm91.1)
-
-mm92 <-multinom( vote~egoposition_immigration_red2+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-
-lda(df, Attrition~x1+x2+x3*x4)
-
-om0<-polr(  vote~1, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-om1 <-polr(  vote~egoposition_immigration, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-om2 <-polr(  vote~political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-om3 <-polr(  vote~egoposition_immigration+political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-om3.1 <-polr(  vote~gegopos_immi+political_interest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-om4 <-polr(  vote~egoposition_immigration_red+political_interest+income+gender+ostwest, data=dfwork,weight=c(rep(1, dim(dfwork)[1])))
-
-
-anova(om0,om1,test='Chisq' )
-anova(om0,om2,test='Chisq' )
-anova(om1,om2,test='Chisq' )
-anova(om3,om2,test='Chisq' )
-anova(om3,om3.1,test='Chisq' )
-anova(om4,om3,test='Chisq' )
-
-AIC(mm9,mm91,mm92,mm91.1)
-
-checkModel<-mm91
-
-gles.fin <- checkModel
-prob.vote <- gles.fin$fit
-tt <- table(predict(checkModel,type="class"),dfwork$vote)
-tt
-
-(accuracy <- sum(diag(tt)) / sum(tt))
-(precision <- diag(tt) / rowSums(tt))
-(recall <- (diag(tt) / colSums(tt)))
-(f1 <- (2*precision*recall/(precision+recall)))
 ```
 
-## 4.2 - Adding factor main effects to the best model containing numeric variables
+### 4.3.2 - Left OR Center
 
-## 4.3 - Adding factor main effects and interactions (limit your statement to order 2) to the best model containing numeric variables.
+```{r}
 
-## 4.4 - Goodness of fit and Model Interpretation for each proposal (nominal/ordinal).
+df1<-df[df$predictedPoliticalOrientation=='pred.Left_Center',]
+pred <- predict(bm2.3, newdata = df1, type = "response")
+df1$predictions <- pred
 
-## 4.5 - Goodness of fit and Model Interpretation for political orientation (right/center/left). Make your own allocation of political parties to the right/center/left wing orientation.
+ggplot(df1, aes(x=idx, y=predictions, color=politicalOrientation)) +
+  geom_point() +
+  geom_hline(yintercept=0.31)
+
+df1$predictedPoliticalOrientation <- ifelse(pred > 0.31,'pred.Left','pred.Center')
+
+```
+
+### 4.3.3 - Gruene OR LINKE
+
+```{r}
+
+df2<-df1[df1$predictedPoliticalOrientation=='pred.Left',]
+pred <- predict(bm3.4, newdata = df2, type = "response")
+df2$predictedParty <- ifelse(pred <= 0.45,'pred.Gruene','pred.LINKE')
+
+```
+
+### 4.3.4 - SPD OR CDU/CSU OR FDP
+
+```{r}
+
+df3<-df1[df1$predictedPoliticalOrientation=='pred.Center',]
+df3$predictedParty <- predict(mm2, newdata = df3, type = "class")
+
+```
+
+### 4.3.5 - Join datasets and validate the Hierarchical Model
+
+```{r}
+
+dfFull = rbind(df2,df3,df[df$predictedPoliticalOrientation=='pred.Right',])
+dfFull$predictedPoliticalOrientation<-as.factor(dfFull$predictedPoliticalOrientation)
+dfFull$predictedParty<-as.factor(dfFull$predictedParty)
+levels(dfFull$predictedParty) <- c("pred.AfD","pred.Gruene","pred.LINKE","pred.CDU/CSU","pred.FDP","pred.SPD")
+
+tt1 <- table(dfFull$politicalOrientation,dfFull$predictedPoliticalOrientation)
+tt1 <-tt1[order(row.names(x = tt1)), order(colnames(x = tt1))]; tt1
+
+(accuracy <- sum(diag(tt1)) / sum(tt1))
+(precision <- diag(tt1) / rowSums(tt1))
+(recall <- (diag(tt1) / colSums(tt1)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+
+tt2 <- table(dfFull$vote,dfFull$predictedParty)
+tt2 <-tt2[order(row.names(x = tt2)), order(colnames(x = tt2))]; tt2
+(accuracy <- sum(diag(tt2)) / sum(tt2))
+(precision <- diag(tt2) / rowSums(tt2))
+(recall <- (diag(tt2) / colSums(tt2)))
+(f1 <- (2*precision*recall/(precision+recall)))
+
+```
